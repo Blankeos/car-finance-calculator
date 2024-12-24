@@ -4,7 +4,7 @@ import { Hono } from "hono";
 
 import { serveStatic } from "hono/bun";
 import { renderPage } from "vike/server";
-import { appRouter } from "./server/_app";
+import { appRouter } from "./_app";
 
 const app = new Hono();
 

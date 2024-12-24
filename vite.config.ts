@@ -16,7 +16,7 @@ const root = resolve(__dirname, ".");
 export default defineConfig({
   plugins: [
     devServer({
-      entry: "server.ts",
+      entry: "src/server/server.ts",
 
       exclude: [
         /^\/@.+$/,
@@ -41,7 +41,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": resolve(root),
+      "@": resolve(root, "src"),
     },
   },
 });
