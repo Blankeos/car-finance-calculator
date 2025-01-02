@@ -37,7 +37,6 @@
     "intl-number-input": "^1.4.1",
     "nanoid": "^5.0.9",
     "solid-js": "^1.9.3",
-    "solid-tippy": "^0.2.1",
     "tippy.js": "^6.3.7",
     "vike": "0.4.210",
     "vike-metadata-solid": "^1.0.4",
