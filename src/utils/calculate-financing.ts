@@ -12,7 +12,7 @@ export const calculateTotalCost = (details: FinancingDetails): number => {
 
 export const calculateDownPaymentFromPercent = (
   carPrice: number,
-  downPaymentPercent: number
+  downPaymentDecimal: number
 ): number => {
-  return (carPrice * downPaymentPercent) / 100;
+  return carPrice * downPaymentDecimal;
 };
