@@ -2,6 +2,8 @@
 
 This is a simple web app that calculates the monthly payments for a car loan based on the loan amount, interest rate, and loan term.
 
+![Screenshot of the Car Financing Calculator](/_docs/preview.png)
+
 ## Features
 
 - Local-first (Saves multiple calculations using my useLocalStorageStore hook from bagon-hooks)
