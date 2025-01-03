@@ -166,9 +166,23 @@ export function FinanceCalculator() {
   const { parentRef: sortableParentRef } = useSortable({
     onEnd: (newIndex, oldIndex) => {
       if (newIndex === oldIndex) return;
-      const copy = unwrap(savedSummaries);
-      arrayMoveMutable(copy, oldIndex, newIndex);
-      setSavedSummaries(reconcile(copy));
+      console.log("onEnd", newIndex, oldIndex);
+
+      // Workaround for some bug: https://github.com/solidjs/solid/issues/1898
+      const lastElementWasMoved =
+        oldIndex === savedSummaries.length - 1 || newIndex == savedSummaries.length - 1;
+      if (lastElementWasMoved) {
+        const copy = unwrap(savedSummaries);
+        arrayMoveMutable(copy, oldIndex, newIndex);
+        setSavedSummaries(reconcile(copy));
+        return;
+      }
+
+      setSavedSummaries((_savedSummaries) => {
+        const copy = structuredClone(_savedSummaries);
+        const sorted = arrayMoveImmutable(copy, oldIndex, newIndex);
+        return sorted;
+      });
     },
   });
 
@@ -340,7 +354,7 @@ function IconWithTooltip(
   );
 }
 
-import { arrayMoveMutable } from "@/utils/array-move";
+import { arrayMoveImmutable, arrayMoveMutable } from "@/utils/array-move";
 import Sortable from "sortablejs";
 
 function useSortable(params: { onEnd: (newIndex: number, oldIndex: number) => void }) {

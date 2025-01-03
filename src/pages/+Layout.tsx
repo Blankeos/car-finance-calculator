@@ -14,7 +14,7 @@ useMetadata.setGlobalDefaults({
 export default function RootLayout(props: FlowProps) {
   return (
     <>
-      <div class="flex min-h-screen flex-col bg-blue-300">{props.children}</div>c
+      <div class="flex min-h-screen flex-col bg-blue-300">{props.children}</div>
     </>
   );
 }
