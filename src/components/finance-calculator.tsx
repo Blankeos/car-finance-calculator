@@ -7,8 +7,8 @@ import { formatCurrency } from "@/utils/format-currency";
 import { formatDateWithTime } from "@/utils/format-date";
 import { NumberFormatStyle } from "intl-number-input";
 import { nanoid } from "nanoid";
-import { createMemo, FlowProps, For, JSX, Show } from "solid-js";
-import { createStore, produce } from "solid-js/store";
+import { createMemo, createSignal, FlowProps, For, JSX, onMount, Show } from "solid-js";
+import { createStore, produce, reconcile, unwrap } from "solid-js/store";
 import { NumberFormat } from "./number-format";
 import { Tippy } from "./Tippy";
 
@@ -160,6 +160,32 @@ export function FinanceCalculator() {
     return Boolean(found);
   });
 
+  // ===========================================================================
+  // Sortable
+  // ===========================================================================
+  const { parentRef: sortableParentRef } = useSortable({
+    onEnd: (newIndex, oldIndex) => {
+      if (newIndex === oldIndex) return;
+      console.log("onEnd", newIndex, oldIndex);
+
+      // Workaround for some bug: https://github.com/solidjs/solid/issues/1898
+      const lastElementWasMoved =
+        oldIndex === savedSummaries.length - 1 || newIndex == savedSummaries.length - 1;
+      if (lastElementWasMoved) {
+        const copy = unwrap(savedSummaries);
+        arrayMoveMutable(copy, oldIndex, newIndex);
+        setSavedSummaries(reconcile(copy));
+        return;
+      }
+
+      setSavedSummaries((_savedSummaries) => {
+        const copy = structuredClone(_savedSummaries);
+        const sorted = arrayMoveImmutable(copy, oldIndex, newIndex);
+        return sorted;
+      });
+    },
+  });
+
   return (
     <div class="mx-auto max-w-md rounded-lg border bg-white p-6 shadow-lg">
       <h2 class="mb-6 text-2xl font-bold">🚙 Car Financing Calculator</h2>
@@ -256,11 +282,11 @@ export function FinanceCalculator() {
         </button>
       </div>
 
-      <div class="mt-4 flex flex-col gap-y-2">
+      <div class="mt-4 flex flex-col gap-y-2" ref={sortableParentRef}>
         <For each={savedSummaries}>
           {(summary) => (
             <div
-              class={`flex cursor-pointer justify-between gap-x-1 rounded-md border p-2 ${summary.id === formData.id ? "border-blue-500 bg-blue-100" : "border-gray-200"}`}
+              class={`sortable-item flex cursor-pointer justify-between gap-x-1 rounded-md border p-2 ${summary.id === formData.id ? "border-blue-500 bg-blue-100" : "border-gray-200 bg-white"}`}
               onClick={(_) => {
                 _.stopPropagation();
                 handleViewClick(summary.id);
@@ -326,4 +352,25 @@ function IconWithTooltip(
       {props.children}
     </div>
   );
+}
+
+import { arrayMoveImmutable, arrayMoveMutable } from "@/utils/array-move";
+import Sortable from "sortablejs";
+
+function useSortable(params: { onEnd: (newIndex: number, oldIndex: number) => void }) {
+  const [_parentRef, setParentRef] = createSignal<HTMLDivElement>();
+  onMount(async () => {
+    if (_parentRef() === undefined) return;
+
+    const sortable = Sortable.create(_parentRef()!, {
+      animation: 200,
+      onEnd: (e) => {
+        if (e.newIndex !== undefined && e.oldIndex !== undefined) {
+          params?.onEnd(e.newIndex, e.oldIndex);
+        }
+      },
+    });
+  });
+
+  return { parentRef: setParentRef };
 }
