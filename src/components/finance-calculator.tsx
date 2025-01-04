@@ -164,25 +164,15 @@ export function FinanceCalculator() {
   // Sortable
   // ===========================================================================
   const { parentRef: sortableParentRef } = useSortable({
-    onEnd: (newIndex, oldIndex) => {
-      if (newIndex === oldIndex) return;
-      console.log("onEnd", newIndex, oldIndex);
+    onEnd: ({ fromIndex, toIndex }) => {
+      if (toIndex === fromIndex) return;
 
-      // Workaround for some bug: https://github.com/solidjs/solid/issues/1898
-      const lastElementWasMoved =
-        oldIndex === savedSummaries.length - 1 || newIndex == savedSummaries.length - 1;
-      if (lastElementWasMoved) {
-        const copy = unwrap(savedSummaries);
-        arrayMoveMutable(copy, oldIndex, newIndex);
-        setSavedSummaries(reconcile(copy));
-        return;
-      }
+      console.log("on End", fromIndex, toIndex);
 
-      setSavedSummaries((_savedSummaries) => {
-        const copy = structuredClone(_savedSummaries);
-        const sorted = arrayMoveImmutable(copy, oldIndex, newIndex);
-        return sorted;
-      });
+      const copy = unwrap(savedSummaries);
+      const sorted = arrayMoveImmutable(copy, fromIndex, toIndex);
+
+      setSavedSummaries(reconcile(sorted));
     },
   });
 
@@ -285,45 +275,47 @@ export function FinanceCalculator() {
       <div class="mt-4 flex flex-col gap-y-2" ref={sortableParentRef}>
         <For each={savedSummaries}>
           {(summary) => (
-            <div
-              class={`sortable-item flex cursor-pointer justify-between gap-x-1 rounded-md border p-2 ${summary.id === formData.id ? "border-blue-500 bg-blue-100" : "border-gray-200 bg-white"}`}
-              onClick={(_) => {
-                _.stopPropagation();
-                handleViewClick(summary.id);
-              }}
-            >
-              <div>
-                <div class="mb-2">{summary.quickNote}</div>
-                <div class="flex flex-wrap items-center gap-x-3 text-xs">
-                  <IconWithTooltip icon={<IconPaperMoney class="h-4 w-4" />} tooltip="Total Cost">
-                    {formatCurrency(summary.totalCost)}
-                  </IconWithTooltip>
-                  <IconWithTooltip
-                    icon={<IconCalendar class="h-4 w-4" />}
-                    tooltip="Monthly Payment"
-                  >
-                    {formatCurrency(summary.monthlyPayment)} for {summary.loanTermMonths} mos
-                  </IconWithTooltip>
-
-                  <IconWithTooltip
-                    class="text-red-700"
-                    icon={<IconPaperMoneyRemove class="h-4 w-4" />}
-                    tooltip="Total Interest (Money you'll pay more because of financing)"
-                  >
-                    {formatCurrency(summary.totalInterest)}
-                  </IconWithTooltip>
-                </div>
-                <div class="mt-1 text-xs text-gray-400">
-                  {formatDateWithTime(summary.createdAt)}
-                </div>
-              </div>
-
-              <button
-                class="place-self-start text-red-500 transition active:scale-95"
-                onClick={(_) => handleDelete(summary.id)}
+            <div class="sortable-item">
+              <div
+                class={`flex cursor-pointer justify-between gap-x-1 rounded-md border p-2 ${summary.id === formData.id ? "border-blue-500 bg-blue-100" : "border-gray-200 bg-white"}`}
+                onClick={(_) => {
+                  _.stopPropagation();
+                  handleViewClick(summary.id);
+                }}
               >
-                <IconClose class="h-4 w-4" />
-              </button>
+                <div>
+                  <div class="mb-2">{summary.quickNote}</div>
+                  <div class="flex flex-wrap items-center gap-x-3 text-xs">
+                    <IconWithTooltip icon={<IconPaperMoney class="h-4 w-4" />} tooltip="Total Cost">
+                      {formatCurrency(summary.totalCost)}
+                    </IconWithTooltip>
+                    <IconWithTooltip
+                      icon={<IconCalendar class="h-4 w-4" />}
+                      tooltip="Monthly Payment"
+                    >
+                      {formatCurrency(summary.monthlyPayment)} for {summary.loanTermMonths} mos
+                    </IconWithTooltip>
+
+                    <IconWithTooltip
+                      class="text-red-700"
+                      icon={<IconPaperMoneyRemove class="h-4 w-4" />}
+                      tooltip="Total Interest (Money you'll pay more because of financing)"
+                    >
+                      {formatCurrency(summary.totalInterest)}
+                    </IconWithTooltip>
+                  </div>
+                  <div class="mt-1 text-xs text-gray-400">
+                    {formatDateWithTime(summary.createdAt)}
+                  </div>
+                </div>
+
+                <button
+                  class="place-self-start text-red-500 transition active:scale-95"
+                  onClick={(_) => handleDelete(summary.id)}
+                >
+                  <IconClose class="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
         </For>
@@ -354,22 +346,34 @@ function IconWithTooltip(
   );
 }
 
-import { arrayMoveImmutable, arrayMoveMutable } from "@/utils/array-move";
-import Sortable from "sortablejs";
+import { arrayMoveImmutable } from "@/utils/array-move";
 
-function useSortable(params: { onEnd: (newIndex: number, oldIndex: number) => void }) {
+function useSortable(params: { onEnd: (data: { fromIndex: number; toIndex: number }) => void }) {
   const [_parentRef, setParentRef] = createSignal<HTMLDivElement>();
   onMount(async () => {
+    const { Sortable } = await import("@shopify/draggable");
+
     if (_parentRef() === undefined) return;
 
-    const sortable = Sortable.create(_parentRef()!, {
-      animation: 200,
-      onEnd: (e) => {
-        if (e.newIndex !== undefined && e.oldIndex !== undefined) {
-          params?.onEnd(e.newIndex, e.oldIndex);
-        }
-      },
+    const sortable = new Sortable(_parentRef()!, {
+      draggable: ".sortable-item",
+      distance: 50,
     });
+
+    sortable.on("sortable:stop", (data) => {
+      if (data.canceled() === false) {
+        console.log("sorting", "woohoo");
+        params?.onEnd({ fromIndex: data.oldIndex, toIndex: data.newIndex });
+      }
+    });
+    // const sortable = Sortable.create(_parentRef()!, {
+    //   animation: 200,
+    //   onEnd: (e) => {
+    //     if (e.newIndex !== undefined && e.oldIndex !== undefined) {
+    //       params?.onEnd(e.newIndex, e.oldIndex);
+    //     }
+    //   },
+    // });
   });
 
   return { parentRef: setParentRef };

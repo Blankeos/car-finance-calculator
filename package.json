@@ -32,13 +32,13 @@
     "vite": "^6.0.5"
   },
   "dependencies": {
+    "@shopify/draggable": "^1.1.3",
     "@solid-primitives/input-mask": "^0.2.2",
     "dayjs": "^1.11.13",
     "hono": "^4.6.14",
     "intl-number-input": "^1.4.1",
     "nanoid": "^5.0.9",
     "solid-js": "^1.9.3",
-    "sortablejs": "^1.15.6",
     "tippy.js": "^6.3.7",
     "vike": "0.4.210",
     "vike-metadata-solid": "^1.0.4",
