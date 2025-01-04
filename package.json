@@ -32,13 +32,17 @@
     "vite": "^6.0.5"
   },
   "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "^1.4.0",
     "@solid-primitives/input-mask": "^0.2.2",
+    "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "hono": "^4.6.14",
     "intl-number-input": "^1.4.1",
     "nanoid": "^5.0.9",
     "solid-js": "^1.9.3",
+    "solid-transition-group": "^0.2.3",
     "sortablejs": "^1.15.6",
+    "tailwind-merge": "^2.6.0",
     "tippy.js": "^6.3.7",
     "vike": "0.4.210",
     "vike-metadata-solid": "^1.0.4",
