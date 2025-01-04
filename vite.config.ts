@@ -40,8 +40,15 @@ export default defineConfig({
     port: 3000,
   },
   resolve: {
-    alias: {
-      "@": resolve(root, "src"),
-    },
+    alias: [
+      { find: "@", replacement: resolve(root, "src") },
+      {
+        find: "@atlaskit/pragmatic-drag-and-drop",
+        replacement: resolve(
+          root,
+          "./node_modules/@atlaskit/pragmatic-drag-and-drop/dist/esm/entry-point"
+        ),
+      },
+    ],
   },
 });
