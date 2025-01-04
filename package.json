@@ -41,7 +41,6 @@
     "nanoid": "^5.0.9",
     "solid-js": "^1.9.3",
     "solid-transition-group": "^0.2.3",
-    "sortablejs": "^1.15.6",
     "tailwind-merge": "^2.6.0",
     "tippy.js": "^6.3.7",
     "vike": "0.4.210",
