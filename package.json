@@ -37,6 +37,7 @@
     "dayjs": "^1.11.13",
     "hono": "^4.6.14",
     "intl-number-input": "^1.4.1",
+    "motion": "^12.4.3",
     "nanoid": "^5.0.9",
     "solid-js": "^1.9.3",
     "tippy.js": "^6.3.7",

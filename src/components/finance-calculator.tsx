@@ -167,8 +167,6 @@ export function FinanceCalculator() {
     onEnd: ({ fromIndex, toIndex }) => {
       if (toIndex === fromIndex) return;
 
-      console.log("on End", fromIndex, toIndex);
-
       const copy = unwrap(savedSummaries);
       const sorted = arrayMoveImmutable(copy, fromIndex, toIndex);
 
@@ -272,19 +270,19 @@ export function FinanceCalculator() {
         </button>
       </div>
 
-      <div class="mt-4 flex flex-col gap-y-2" ref={sortableParentRef}>
+      <div class="relative mt-4 flex w-full flex-col gap-y-2" ref={sortableParentRef}>
         <For each={savedSummaries}>
           {(summary) => (
-            <div class="sortable-item">
+            <div class="sortable-item [&.draggable--over]:opacity-10">
               <div
-                class={`flex cursor-pointer justify-between gap-x-1 rounded-md border p-2 ${summary.id === formData.id ? "border-blue-500 bg-blue-100" : "border-gray-200 bg-white"}`}
+                class={`flex w-full cursor-pointer justify-between gap-x-1 rounded-md border p-2 ${summary.id === formData.id ? "border-blue-500 bg-blue-100" : "border-gray-200 bg-white"}`}
                 onClick={(_) => {
                   _.stopPropagation();
                   handleViewClick(summary.id);
                 }}
               >
                 <div>
-                  <div class="mb-2">{summary.quickNote}</div>
+                  <div class="mb-2">{summary.quickNote}asd</div>
                   <div class="flex flex-wrap items-center gap-x-3 text-xs">
                     <IconWithTooltip icon={<IconPaperMoney class="h-4 w-4" />} tooltip="Total Cost">
                       {formatCurrency(summary.totalCost)}
@@ -347,6 +345,7 @@ function IconWithTooltip(
 }
 
 import { arrayMoveImmutable } from "@/utils/array-move";
+import { animate } from "motion";
 
 function useSortable(params: { onEnd: (data: { fromIndex: number; toIndex: number }) => void }) {
   const [_parentRef, setParentRef] = createSignal<HTMLDivElement>();
@@ -357,23 +356,94 @@ function useSortable(params: { onEnd: (data: { fromIndex: number; toIndex: numbe
 
     const sortable = new Sortable(_parentRef()!, {
       draggable: ".sortable-item",
-      distance: 50,
+      mirror: {
+        constrainDimensions: true,
+      },
+      distance: 5,
     });
 
+    const sortableSourceMap = new Map<
+      HTMLElement,
+      { isSorted: boolean; targetRect?: HTMLElement }
+    >();
+
     sortable.on("sortable:stop", (data) => {
+      /**
+       * The mirror is actually another 'item' inside the container element. So we want to not include it in the indexing.
+       * What I found is that the mirror is ordered 'after' the old index. So the ternary just uses the newIndex as usual for lower values.
+       * But uses a +1 for higher values than the old index.
+       */
+      const indexNotIncludingTheMirror =
+        data.newIndex <= data.oldIndex ? data.newIndex : data.newIndex + 1;
+      const targetElement = data.newContainer.children[indexNotIncludingTheMirror];
+
+      sortableSourceMap.set(data.dragEvent.source, {
+        isSorted: data.oldIndex !== data.newIndex,
+        targetRect: targetElement as any,
+      });
+
       if (data.canceled() === false) {
-        console.log("sorting", "woohoo");
         params?.onEnd({ fromIndex: data.oldIndex, toIndex: data.newIndex });
       }
     });
-    // const sortable = Sortable.create(_parentRef()!, {
-    //   animation: 200,
-    //   onEnd: (e) => {
-    //     if (e.newIndex !== undefined && e.oldIndex !== undefined) {
-    //       params?.onEnd(e.newIndex, e.oldIndex);
-    //     }
-    //   },
-    // });
+
+    // Keep track of original positions
+    const originalPositions = new Map();
+
+    sortable.on("mirror:created", ({ mirror, source }) => {
+      // Store the original position when drag starts
+      const rect = source.getBoundingClientRect();
+      originalPositions.set(mirror, {
+        x: rect.left,
+        y: rect.top,
+      });
+    });
+
+    sortable.on("mirror:destroy", (event) => {
+      const endedSortVal = sortableSourceMap.get(event.source); // We have no way to check what happened to sort under this event alone.
+
+      function _destroyMirror() {
+        mirror?.parentNode?.removeChild(mirror);
+        originalPositions.delete(mirror);
+      }
+
+      event?.cancel(); // Prevent default mirror destruction
+
+      const { mirror } = event;
+
+      // Destination: (if not sorted, use 'original'). (if sorted, use 'sortTarget')
+      let destinationPosition = originalPositions.get(mirror);
+      if (endedSortVal?.isSorted) {
+        const sortTargetRect = endedSortVal.targetRect!.getBoundingClientRect();
+        destinationPosition = {
+          x: sortTargetRect.left,
+          y: sortTargetRect.top,
+        };
+      }
+
+      // Current: Current posiiton of the mirror
+      const currentTransform = new DOMMatrix(getComputedStyle(mirror).transform);
+      const currentX = currentTransform.m41;
+      const currentY = currentTransform.m42;
+
+      // Animate using Motion One
+      animate(
+        mirror,
+        {
+          /** @ts-ignore */
+          x: [currentX, destinationPosition.x],
+          /** @ts-ignore */
+          y: [currentY, destinationPosition.y],
+        },
+        {
+          duration: 0.25,
+          easing: [0.25, 0.1, 0.25, 1], // Easy out cubic
+          onComplete: () => {
+            _destroyMirror();
+          },
+        }
+      );
+    });
   });
 
   return { parentRef: setParentRef };
